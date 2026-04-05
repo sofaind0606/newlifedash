@@ -234,6 +234,17 @@
         .progress-fill.red { background: var(--color-danger); }
         .progress-fill.blue { background: var(--color-secondary); }
         
+        /* Блок с остатком бюджета */
+        .budget-remaining {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--color-border-light);
+            font-size: 0.95em;
+            font-weight: 600;
+            color: var(--color-text);
+            text-align: right;
+        }
+        
         .tables-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -309,6 +320,21 @@
             background: var(--color-success);
             border-radius: 3px;
             transition: width 0.3s ease;
+        }
+        
+        .action-btn-icon {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            color: var(--color-primary);
+        }
+        .action-btn-icon:hover {
+            background: var(--color-primary-light);
+            transform: scale(1.1);
         }
         
         .journal-section {
@@ -510,7 +536,7 @@
             box-shadow: var(--shadow-md);
         }
         
-        /* ========== SETTINGS ========== */
+        /* настройки */
         .settings-section {
             margin-bottom: 25px;
             padding-bottom: 25px;
@@ -699,6 +725,7 @@
                 <div class="progress-card">
                     <div class="progress-title">📊 Budget vs Actual</div>
                     <div id="budgetProgress"></div>
+                    <div class="budget-remaining" id="budgetRemaining"></div>
                 </div>
                 <div class="progress-card">
                     <div class="progress-title">🎯 Savings Goals</div>
@@ -713,11 +740,7 @@
                     </div>
                     <table class="finance-table">
                         <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
+                            <tr><th>Category</th><th>Amount</th><th>Status</th></tr>
                         </thead>
                         <tbody id="incomeExpenseTable"></tbody>
                     </table>
@@ -729,12 +752,7 @@
                     </div>
                     <table class="finance-table">
                         <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Due Date</th>
-                                <th>Paid / Remaining</th>
-                                <th>Progress</th>
-                            </tr>
+                            <tr><th>Name</th><th>Due Date</th><th>Paid / Remaining</th><th>Progress</th><th></th></tr>
                         </thead>
                         <tbody id="debtsTable"></tbody>
                     </table>
@@ -755,6 +773,7 @@
         </div>
     </div>
 
+    <!-- Модалка транзакций -->
     <div id="transactionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -771,93 +790,59 @@
                 </select>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Amount (₽)</label>
-                    <input type="number" id="transactionAmount" placeholder="0.00" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="transactionDate">
-                </div>
+                <div class="form-group"><label>Amount (₽)</label><input type="number" id="transactionAmount" placeholder="0.00" step="0.01"></div>
+                <div class="form-group"><label>Date</label><input type="date" id="transactionDate"></div>
             </div>
-            
-            <div class="form-group hidden" id="categoryGroup">
-                <label>Category</label>
-                <select id="transactionCategory"></select>
-            </div>
-            
-            <div class="form-group hidden" id="debtSelectGroup">
-                <label>Select Debt</label>
-                <select id="transactionDebt"></select>
-            </div>
-            
-            <div class="form-group hidden" id="savingsSelectGroup">
-                <label>Select Savings Goal</label>
-                <select id="transactionSavings"></select>
-            </div>
-            
-            <div class="form-group">
-                <label>Description</label>
-                <input type="text" id="transactionDescription" placeholder="Enter description...">
-            </div>
+            <div class="form-group hidden" id="categoryGroup"><label>Category</label><select id="transactionCategory"></select></div>
+            <div class="form-group hidden" id="debtSelectGroup"><label>Select Debt</label><select id="transactionDebt"></select></div>
+            <div class="form-group hidden" id="savingsSelectGroup"><label>Select Savings Goal</label><select id="transactionSavings"></select></div>
+            <div class="form-group"><label>Description</label><input type="text" id="transactionDescription" placeholder="Enter description..."></div>
             <button class="save-btn" onclick="saveTransaction()">💾 Save</button>
         </div>
     </div>
 
+    <!-- Модалка управления транзакциями по долгу/накоплению -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="historyModalTitle">Transaction History</h3>
+                <button class="close-modal" onclick="closeHistoryModal()">✖</button>
+            </div>
+            <div id="historyList" class="journal-list" style="max-height: 400px;"></div>
+        </div>
+    </div>
+
+    <!-- Модалка настроек (осталась без изменений) -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>⚙️ Finance Settings</h3>
                 <button class="close-modal" onclick="closeSettingsModal()">✖</button>
             </div>
-            
             <div class="settings-section">
                 <div class="settings-section-title">💰 Budget</div>
-                <div class="form-group">
-                    <label>Monthly Budget (₽)</label>
-                    <input type="number" id="monthlyBudgetInput" placeholder="50000">
-                </div>
+                <div class="form-group"><label>Monthly Budget (₽)</label><input type="number" id="monthlyBudgetInput" placeholder="50000"></div>
             </div>
-            
             <div class="settings-section">
                 <div class="settings-section-title">📥 Income Categories</div>
                 <div class="settings-list" id="incomeCategoriesList"></div>
-                <div class="add-setting-row">
-                    <input type="text" id="newIncomeCategory" placeholder="Category name...">
-                    <button onclick="addIncomeCategory()">➕ Add</button>
-                </div>
+                <div class="add-setting-row"><input type="text" id="newIncomeCategory" placeholder="Category name..."><button onclick="addIncomeCategory()">➕ Add</button></div>
             </div>
-            
             <div class="settings-section">
                 <div class="settings-section-title">📤 Expense Categories</div>
                 <div class="settings-list" id="expenseCategoriesList"></div>
-                <div class="add-setting-row">
-                    <input type="text" id="newExpenseCategory" placeholder="Category name...">
-                    <button onclick="addExpenseCategory()">➕ Add</button>
-                </div>
+                <div class="add-setting-row"><input type="text" id="newExpenseCategory" placeholder="Category name..."><button onclick="addExpenseCategory()">➕ Add</button></div>
             </div>
-            
             <div class="settings-section">
                 <div class="settings-section-title">🎯 Savings Goals</div>
                 <div class="settings-list" id="savingsGoalsList"></div>
-                <div class="add-setting-row">
-                    <input type="text" id="newSavingsName" placeholder="Goal name..." style="flex:1;">
-                    <input type="number" id="newSavingsTarget" placeholder="Target amount">
-                    <button onclick="addSavingsGoal()">➕</button>
-                </div>
+                <div class="add-setting-row"><input type="text" id="newSavingsName" placeholder="Goal name..." style="flex:1;"><input type="number" id="newSavingsTarget" placeholder="Target amount"><button onclick="addSavingsGoal()">➕</button></div>
             </div>
-            
             <div class="settings-section">
                 <div class="settings-section-title">💳 Debts & Loans</div>
                 <div class="settings-list" id="debtsList"></div>
-                <div class="add-setting-row">
-                    <input type="text" id="newDebtName" placeholder="Name..." style="flex:1;">
-                    <input type="number" id="newDebtTotal" placeholder="Amount">
-                    <input type="date" id="newDebtDueDate" title="Due date">
-                    <button onclick="addDebt()">➕</button>
-                </div>
+                <div class="add-setting-row"><input type="text" id="newDebtName" placeholder="Name..." style="flex:1;"><input type="number" id="newDebtTotal" placeholder="Amount"><input type="date" id="newDebtDueDate" title="Due date"><button onclick="addDebt()">➕</button></div>
             </div>
-            
             <button class="save-btn" onclick="saveSettings()">💾 Save Settings</button>
         </div>
     </div>
@@ -898,6 +883,9 @@
         let db = null;
         let currentUser = null;
         
+        // Переменные для модалки истории
+        let currentHistoryEntity = null; // { type: 'debt' or 'savings', id: string, name: string }
+        
         const firebaseConfig = {
             apiKey: "AIzaSyARKWwV3cggOhda9g6cDNcEAGOpUN4O63I",
             authDomain: "lifedashbord.firebaseapp.com",
@@ -910,30 +898,23 @@
         document.addEventListener('DOMContentLoaded', function() {
             initFirebase();
             document.getElementById('monthlyBudgetInput').value = financeData.monthlyBudget || 50000;
-            // ✅ Render immediately from localStorage (no wait for Firebase)
             renderAll();
             setInterval(renderAll, 60000);
         });
         
         function initFirebase() {
             try {
-                if (typeof firebase === 'undefined') { return; }
+                if (typeof firebase === 'undefined') return;
                 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 var auth = firebase.auth();
                 auth.onAuthStateChanged(function(user) {
-                    if (user) { 
-                        currentUser = user; 
-                        firebaseReady = true;
-                        // ✅ Load from Firebase in background (non-blocking)
-                        loadFinanceData();
-                    }
+                    if (user) { currentUser = user; firebaseReady = true; loadFinanceData(); }
                     else { firebaseReady = false; }
                 });
-            } catch (e) { firebaseReady = false; }
+            } catch(e) { firebaseReady = false; }
         }
         
-        // ✅ Fixed: using .then() without await to avoid syntax errors
         function loadFinanceData() {
             if (!currentUser || !db) return;
             db.collection('users').doc(currentUser.uid).collection('finance').doc('data').get().then(function(doc) {
@@ -947,7 +928,6 @@
                         savingsGoals: data.savingsGoals || [],
                         debts: data.debts || []
                     };
-                    // Only update if data differs
                     if (JSON.stringify(financeData) !== JSON.stringify(loaded)) {
                         financeData = loaded;
                         localStorage.setItem('financeData', JSON.stringify(financeData));
@@ -959,14 +939,12 @@
         
         function saveFinanceData() {
             localStorage.setItem('financeData', JSON.stringify(financeData));
-            // ✅ Sync to Firebase (non-blocking)
             if (firebaseReady && currentUser && db) {
                 db.collection('users').doc(currentUser.uid).collection('finance').doc('data').set(financeData);
             }
         }
         
         function generateId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); }
-        
         function formatMoney(amount) { 
             const num = parseFloat(amount) || 0;
             return num.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₽'; 
@@ -983,132 +961,7 @@
             populateSavingsSelect();
         }
         
-        window.onTransactionTypeChange = function() {
-            const type = document.getElementById('transactionType').value;
-            const categoryGroup = document.getElementById('categoryGroup');
-            const debtSelectGroup = document.getElementById('debtSelectGroup');
-            const savingsSelectGroup = document.getElementById('savingsSelectGroup');
-            
-            categoryGroup.classList.add('hidden');
-            debtSelectGroup.classList.add('hidden');
-            savingsSelectGroup.classList.add('hidden');
-            
-            if (type === 'expense' || type === 'income') {
-                categoryGroup.classList.remove('hidden');
-                populateCategorySelect();
-            } else if (type === 'debt') {
-                debtSelectGroup.classList.remove('hidden');
-                populateDebtSelect();
-            } else if (type === 'savings') {
-                savingsSelectGroup.classList.remove('hidden');
-                populateSavingsSelect();
-            }
-        };
-        
-        function populateCategorySelect() {
-            const select = document.getElementById('transactionCategory');
-            select.innerHTML = '';
-            const type = document.getElementById('transactionType').value;
-            if (type === 'income') {
-                (financeData.incomeCategories || []).forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.icon + ' ' + cat.name;
-                    select.appendChild(option);
-                });
-            } else {
-                (financeData.expenseCategories || []).forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.icon + ' ' + cat.name;
-                    select.appendChild(option);
-                });
-            }
-        }
-        
-        function populateDebtSelect() {
-            const select = document.getElementById('transactionDebt');
-            select.innerHTML = '';
-            const debts = financeData.debts || [];
-            if (debts.length === 0) {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'No active debts';
-                option.disabled = true;
-                select.appendChild(option);
-            } else {
-                debts.forEach(debt => {
-                    const option = document.createElement('option');
-                    option.value = debt.id;
-                    const remaining = parseFloat(debt.remaining) || 0;
-                    option.textContent = debt.name + ' (remaining: ' + formatMoney(remaining) + ')';
-                    select.appendChild(option);
-                });
-            }
-        }
-        
-        function populateSavingsSelect() {
-            const select = document.getElementById('transactionSavings');
-            select.innerHTML = '';
-            const goals = financeData.savingsGoals || [];
-            if (goals.length === 0) {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'No savings goals';
-                option.disabled = true;
-                select.appendChild(option);
-            } else {
-                goals.forEach(goal => {
-                    const option = document.createElement('option');
-                    option.value = goal.id;
-                    const current = parseFloat(goal.current) || 0;
-                    const target = parseFloat(goal.target) || 0;
-                    option.textContent = goal.name + ' (' + formatMoney(current) + ' / ' + formatMoney(target) + ')';
-                    select.appendChild(option);
-                });
-            }
-        }
-        
-        document.getElementById('transactionType')?.addEventListener('change', window.onTransactionTypeChange);
-        
-        function renderDailyLimit() {
-            const today = new Date();
-            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const daysPassed = today.getDate();
-            const daysRemaining = daysInMonth - daysPassed;
-            const monthlyBudget = parseFloat(financeData.monthlyBudget) || 50000;
-            const monthTransactions = (financeData.transactions || []).filter(t => {
-                const tDate = new Date(t.date);
-                return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
-            });
-            const totalSpent = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-            const remaining = monthlyBudget - totalSpent;
-            const dailyLimit = daysRemaining > 0 ? remaining / daysRemaining : 0;
-            document.getElementById('daysRemaining').textContent = daysRemaining + ' days';
-            document.getElementById('dailyLimitAmount').textContent = formatMoney(Math.round(dailyLimit));
-        }
-        
-        function renderDashboard() {
-            const today = new Date();
-            const monthTransactions = (financeData.transactions || []).filter(t => {
-                const tDate = new Date(t.date);
-                return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
-            });
-            const income = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-            const expenses = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-            const savings = (financeData.savingsGoals || []).reduce((sum, s) => sum + (parseFloat(s.current) || 0), 0);
-            const debt = (financeData.debts || []).reduce((sum, d) => sum + (parseFloat(d.remaining) || 0), 0);
-            document.getElementById('totalIncome').textContent = formatMoney(income);
-            document.getElementById('incomeCount').textContent = monthTransactions.filter(t => t.type === 'income').length + ' transactions';
-            document.getElementById('totalExpenses').textContent = formatMoney(expenses);
-            document.getElementById('expenseCount').textContent = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').length + ' transactions';
-            document.getElementById('totalSavings').textContent = formatMoney(savings);
-            const totalSavingsGoal = (financeData.savingsGoals || []).reduce((sum, s) => sum + (parseFloat(s.target) || 0), 0);
-            document.getElementById('savingsGoal').textContent = 'of ' + formatMoney(totalSavingsGoal);
-            document.getElementById('totalDebt').textContent = formatMoney(debt);
-            document.getElementById('debtCount').textContent = (financeData.debts || []).length + ' accounts';
-        }
-        
+        // --- остаток бюджета ---
         function renderProgress() {
             const today = new Date();
             const monthTransactions = (financeData.transactions || []).filter(t => {
@@ -1116,18 +969,25 @@
                 return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
             });
             const expenses = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-            const budgetPercent = Math.min(100, (expenses / (parseFloat(financeData.monthlyBudget) || 50000)) * 100);
+            const budget = parseFloat(financeData.monthlyBudget) || 50000;
+            const budgetPercent = Math.min(100, (expenses / budget) * 100);
             let budgetHtml = '';
             budgetHtml += '<div class="progress-item">';
-            budgetHtml += '<div class="progress-label"><span>Monthly Budget</span><span>' + formatMoney(expenses) + ' / ' + formatMoney(financeData.monthlyBudget) + '</span></div>';
+            budgetHtml += '<div class="progress-label"><span>Monthly Budget</span><span>' + formatMoney(expenses) + ' / ' + formatMoney(budget) + '</span></div>';
             budgetHtml += '<div class="progress-bar"><div class="progress-fill ' + (budgetPercent > 90 ? 'red' : budgetPercent > 70 ? 'yellow' : 'green') + '" style="width:' + budgetPercent + '%"></div></div>';
             budgetHtml += '</div>';
             document.getElementById('budgetProgress').innerHTML = budgetHtml;
+            // остаток бюджета на месяц
+            const remaining = Math.max(0, budget - expenses);
+            document.getElementById('budgetRemaining').innerHTML = `💰 Remaining budget: ${formatMoney(remaining)}`;
+            
             let savingsHtml = '';
             (financeData.savingsGoals || []).forEach(goal => {
                 const percent = Math.min(100, ((parseFloat(goal.current) || 0) / (parseFloat(goal.target) || 1)) * 100);
                 savingsHtml += '<div class="progress-item">';
-                savingsHtml += '<div class="progress-label"><span>' + goal.name + '</span><span>' + formatMoney(goal.current) + ' / ' + formatMoney(goal.target) + '</span></div>';
+                savingsHtml += '<div class="progress-label"><span>' + goal.name + '</span><span>' + formatMoney(goal.current) + ' / ' + formatMoney(goal.target) + '</span>';
+                savingsHtml += `<button class="action-btn-icon" onclick="openHistoryModal('savings','${goal.id}','${goal.name.replace(/'/g, "\\'")}')" title="View transactions">⚙️</button>`;
+                savingsHtml += '</div>';
                 savingsHtml += '<div class="progress-bar"><div class="progress-fill blue" style="width:' + percent + '%"></div></div>';
                 savingsHtml += '</div>';
             });
@@ -1152,15 +1012,9 @@
                 const cat = (financeData.expenseCategories || []).find(c => c.id === catId);
                 const icon = cat ? cat.icon : '📌';
                 const catName = cat ? cat.name : catId;
-                incomeExpenseHtml += '<tr>';
-                incomeExpenseHtml += '<td>' + icon + ' ' + catName + '</td>';
-                incomeExpenseHtml += '<td class="amount-negative">' + formatMoney(amount) + '</td>';
-                incomeExpenseHtml += '<td><span class="status-badge pending">Expense</span></td>';
-                incomeExpenseHtml += '</tr>';
+                incomeExpenseHtml += `<tr><td>${icon} ${catName}</td><td class="amount-negative">${formatMoney(amount)}</td><td><span class="status-badge pending">Expense</span></td></tr>`;
             });
-            if (incomeExpenseHtml === '') {
-                incomeExpenseHtml = '<tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);">No transactions this month</td></tr>';
-            }
+            if (incomeExpenseHtml === '') incomeExpenseHtml = '<tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);">No transactions this month</td></tr>';
             document.getElementById('incomeExpenseTable').innerHTML = incomeExpenseHtml;
             
             let debtsHtml = '';
@@ -1169,316 +1023,247 @@
                 const paid = parseFloat(debt.paid) || 0;
                 const remaining = parseFloat(debt.remaining) || 0;
                 const percentPaid = total > 0 ? Math.round((paid / total) * 100) : 0;
-                
                 const dueDate = new Date(debt.dueDate);
                 const isOverdue = dueDate < today;
                 const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-                const statusText = isOverdue ? 'Overdue' : daysUntil <= 7 ? 'Soon' : 'On Track';
-                
-                debtsHtml += '<tr>';
-                debtsHtml += '<td><strong>' + (debt.name || 'Unnamed') + '</strong>';
-                debtsHtml += '<div class="debt-details">Total: ' + formatMoney(total) + '</div></td>';
-                debtsHtml += '<td>' + dueDate.toLocaleDateString('en-US');
-                debtsHtml += '<div class="debt-details">' + (daysUntil >= 0 ? 'in ' + daysUntil + ' days' : 'Overdue') + '</div></td>';
-                debtsHtml += '<td><div class="amount-positive">Paid: ' + formatMoney(paid) + '</div>';
-                debtsHtml += '<div class="amount-negative">Remaining: ' + formatMoney(remaining) + '</div></td>';
-                debtsHtml += '<td><div class="debt-progress"><span style="font-size:0.75em;">' + percentPaid + '%</span>';
-                debtsHtml += '<div class="debt-progress-bar"><div class="debt-progress-fill" style="width:' + percentPaid + '%"></div></div></div></td>';
-                debtsHtml += '</tr>';
+                debtsHtml += `<tr>
+                    <td><strong>${debt.name || 'Unnamed'}</strong><div class="debt-details">Total: ${formatMoney(total)}</div></td>
+                    <td>${dueDate.toLocaleDateString('en-US')}<div class="debt-details">${daysUntil >= 0 ? 'in ' + daysUntil + ' days' : 'Overdue'}</div></td>
+                    <td><div class="amount-positive">Paid: ${formatMoney(paid)}</div><div class="amount-negative">Remaining: ${formatMoney(remaining)}</div></td>
+                    <td><div class="debt-progress"><span style="font-size:0.75em;">${percentPaid}%</span><div class="debt-progress-bar"><div class="debt-progress-fill" style="width:${percentPaid}%"></div></div></div></td>
+                    <td><button class="action-btn-icon" onclick="openHistoryModal('debt','${debt.id}','${debt.name.replace(/'/g, "\\'")}')" title="Transaction history">⚙️</button></td>
+                </tr>`;
             });
-            if (debtsHtml === '') {
-                debtsHtml = '<tr><td colspan="4" style="text-align:center;color:var(--color-text-muted);">No debts</td></tr>';
-            }
+            if (debtsHtml === '') debtsHtml = '<tr><td colspan="5" style="text-align:center;color:var(--color-text-muted);">No debts</td></tr>';
             document.getElementById('debtsTable').innerHTML = debtsHtml;
         }
         
-        function renderJournal() {
-            const list = document.getElementById('journalList');
-            list.innerHTML = '';
-            
-            let transactions = [...(financeData.transactions || [])].sort((a, b) => {
-                return new Date(b.date) - new Date(a.date);
-            });
-            
-            if (currentFilter !== 'all') {
-                transactions = transactions.filter(t => {
-                    if (currentFilter === 'income') return t.type === 'income';
-                    if (currentFilter === 'expense') return t.type === 'expense' || t.type === 'debt';
-                    return true;
-                });
+        // --- Модалка истории транзакций с возможностью отмены ---
+        window.openHistoryModal = function(type, id, name) {
+            currentHistoryEntity = { type, id, name };
+            document.getElementById('historyModalTitle').innerHTML = `📜 ${name} — transactions`;
+            renderHistoryList();
+            document.getElementById('historyModal').classList.add('active');
+        };
+        
+        function renderHistoryList() {
+            const container = document.getElementById('historyList');
+            if (!currentHistoryEntity) return;
+            let relevantTransactions = [];
+            if (currentHistoryEntity.type === 'debt') {
+                relevantTransactions = (financeData.transactions || []).filter(t => t.type === 'debt' && t.debtId === currentHistoryEntity.id);
+            } else if (currentHistoryEntity.type === 'savings') {
+                relevantTransactions = (financeData.transactions || []).filter(t => t.type === 'savings' && t.savingsId === currentHistoryEntity.id);
             }
-            
-            if (transactions.length === 0) {
-                list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--color-text-muted);">No transactions</div>';
+            if (relevantTransactions.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:20px;">No transactions yet</div>';
                 return;
             }
-            
-            transactions.forEach(t => {
-                let icon = '📌';
-                let catName = 'No category';
-                
-                if (t.type === 'income') {
-                    const cat = (financeData.incomeCategories || []).find(c => c.id === t.category);
-                    icon = cat ? cat.icon : '📥';
-                    catName = cat ? cat.name : 'Income';
-                } else if (t.type === 'expense') {
-                    const cat = (financeData.expenseCategories || []).find(c => c.id === t.category);
-                    icon = cat ? cat.icon : '📤';
-                    catName = cat ? cat.name : 'Expense';
-                } else if (t.type === 'debt') {
-                    icon = '💳';
-                    const debt = (financeData.debts || []).find(d => d.id === t.debtId);
-                    catName = debt ? 'Payment: ' + debt.name : 'Debt Payment';
-                } else if (t.type === 'savings') {
-                    icon = '🎯';
-                    const goal = (financeData.savingsGoals || []).find(g => g.id === t.savingsId);
-                    catName = goal ? 'Savings: ' + goal.name : 'Savings';
-                }
-                
+            relevantTransactions.sort((a,b) => new Date(b.date) - new Date(a.date));
+            container.innerHTML = '';
+            relevantTransactions.forEach(tr => {
                 const item = document.createElement('div');
                 item.className = 'journal-item';
-                item.innerHTML = '<div class="journal-info"><div class="journal-icon ' + t.type + '">' + icon + '</div><div class="journal-details"><div style="font-weight:600;">' + (t.description || catName) + '</div><div class="journal-date">' + new Date(t.date).toLocaleDateString('en-US') + ' • ' + catName + '</div></div></div><div class="journal-amount ' + (t.type === 'income' ? 'amount-positive' : 'amount-negative') + '">' + (t.type === 'income' ? '+' : '-') + formatMoney(t.amount) + '</div><button class="journal-delete-btn" onclick="deleteTransaction(\'' + t.id + '\')" title="Delete">✖</button>';
-                list.appendChild(item);
+                item.innerHTML = `
+                    <div class="journal-info">
+                        <div class="journal-icon ${tr.type}">${tr.type === 'debt' ? '💳' : '🎯'}</div>
+                        <div class="journal-details">
+                            <div style="font-weight:600;">${tr.description || (tr.type === 'debt' ? 'Debt payment' : 'Savings contribution')}</div>
+                            <div class="journal-date">${new Date(tr.date).toLocaleDateString('en-US')}</div>
+                        </div>
+                    </div>
+                    <div class="journal-amount amount-negative">- ${formatMoney(tr.amount)}</div>
+                    <button class="journal-delete-btn" onclick="undoTransaction('${tr.id}')">✖ Undo</button>
+                `;
+                container.appendChild(item);
             });
         }
         
-        window.filterJournal = function(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            renderJournal();
+        window.undoTransaction = function(transactionId) {
+            const transaction = (financeData.transactions || []).find(t => t.id === transactionId);
+            if (!transaction) return;
+            // Возвращаем изменения в зависимости от типа
+            if (transaction.type === 'debt') {
+                const debt = (financeData.debts || []).find(d => d.id === transaction.debtId);
+                if (debt) {
+                    const amount = parseFloat(transaction.amount) || 0;
+                    debt.paid = Math.max(0, (parseFloat(debt.paid) || 0) - amount);
+                    debt.remaining = Math.min((parseFloat(debt.total) || 0), (parseFloat(debt.remaining) || 0) + amount);
+                }
+            } else if (transaction.type === 'savings') {
+                const goal = (financeData.savingsGoals || []).find(g => g.id === transaction.savingsId);
+                if (goal) {
+                    const amount = parseFloat(transaction.amount) || 0;
+                    goal.current = Math.max(0, (parseFloat(goal.current) || 0) - amount);
+                }
+            }
+            // Удаляем транзакцию
+            financeData.transactions = financeData.transactions.filter(t => t.id !== transactionId);
+            saveFinanceData();
+            renderAll();
+            if (currentHistoryEntity) renderHistoryList();
         };
         
+        window.closeHistoryModal = function() {
+            document.getElementById('historyModal').classList.remove('active');
+            currentHistoryEntity = null;
+        };
+        
+        // --- остальные функции (без изменений) ---
+        window.onTransactionTypeChange = function() {
+            const type = document.getElementById('transactionType').value;
+            document.getElementById('categoryGroup').classList.add('hidden');
+            document.getElementById('debtSelectGroup').classList.add('hidden');
+            document.getElementById('savingsSelectGroup').classList.add('hidden');
+            if (type === 'expense' || type === 'income') document.getElementById('categoryGroup').classList.remove('hidden');
+            else if (type === 'debt') document.getElementById('debtSelectGroup').classList.remove('hidden');
+            else if (type === 'savings') document.getElementById('savingsSelectGroup').classList.remove('hidden');
+            populateCategorySelect();
+            populateDebtSelect();
+            populateSavingsSelect();
+        };
+        function populateCategorySelect() {
+            const select = document.getElementById('transactionCategory');
+            select.innerHTML = '';
+            const type = document.getElementById('transactionType').value;
+            const list = type === 'income' ? (financeData.incomeCategories || []) : (financeData.expenseCategories || []);
+            list.forEach(cat => { const opt = document.createElement('option'); opt.value = cat.id; opt.textContent = cat.icon + ' ' + cat.name; select.appendChild(opt); });
+        }
+        function populateDebtSelect() {
+            const select = document.getElementById('transactionDebt');
+            select.innerHTML = '';
+            const debts = financeData.debts || [];
+            if (debts.length === 0) { select.innerHTML = '<option value="" disabled>No active debts</option>'; return; }
+            debts.forEach(debt => { const opt = document.createElement('option'); opt.value = debt.id; opt.textContent = debt.name + ' (remaining: ' + formatMoney(debt.remaining) + ')'; select.appendChild(opt); });
+        }
+        function populateSavingsSelect() {
+            const select = document.getElementById('transactionSavings');
+            select.innerHTML = '';
+            const goals = financeData.savingsGoals || [];
+            if (goals.length === 0) { select.innerHTML = '<option value="" disabled>No savings goals</option>'; return; }
+            goals.forEach(goal => { const opt = document.createElement('option'); opt.value = goal.id; opt.textContent = goal.name + ' (' + formatMoney(goal.current) + ' / ' + formatMoney(goal.target) + ')'; select.appendChild(opt); });
+        }
+        function renderDailyLimit() {
+            const today = new Date();
+            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const daysPassed = today.getDate();
+            const daysRemaining = daysInMonth - daysPassed;
+            const monthlyBudget = parseFloat(financeData.monthlyBudget) || 50000;
+            const monthTransactions = (financeData.transactions || []).filter(t => { const d = new Date(t.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); });
+            const totalSpent = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').reduce((s,t) => s + (parseFloat(t.amount)||0), 0);
+            const remaining = monthlyBudget - totalSpent;
+            const dailyLimit = daysRemaining > 0 ? remaining / daysRemaining : 0;
+            document.getElementById('daysRemaining').textContent = daysRemaining + ' days';
+            document.getElementById('dailyLimitAmount').textContent = formatMoney(Math.round(dailyLimit));
+        }
+        function renderDashboard() {
+            const today = new Date();
+            const monthTransactions = (financeData.transactions || []).filter(t => { const d = new Date(t.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); });
+            const income = monthTransactions.filter(t => t.type === 'income').reduce((s,t) => s + (parseFloat(t.amount)||0),0);
+            const expenses = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').reduce((s,t) => s + (parseFloat(t.amount)||0),0);
+            const savings = (financeData.savingsGoals || []).reduce((s,g) => s + (parseFloat(g.current)||0),0);
+            const debt = (financeData.debts || []).reduce((s,d) => s + (parseFloat(d.remaining)||0),0);
+            document.getElementById('totalIncome').textContent = formatMoney(income);
+            document.getElementById('incomeCount').textContent = monthTransactions.filter(t => t.type === 'income').length + ' transactions';
+            document.getElementById('totalExpenses').textContent = formatMoney(expenses);
+            document.getElementById('expenseCount').textContent = monthTransactions.filter(t => t.type === 'expense' || t.type === 'debt').length + ' transactions';
+            document.getElementById('totalSavings').textContent = formatMoney(savings);
+            const totalSavingsGoal = (financeData.savingsGoals || []).reduce((s,g) => s + (parseFloat(g.target)||0),0);
+            document.getElementById('savingsGoal').textContent = 'of ' + formatMoney(totalSavingsGoal);
+            document.getElementById('totalDebt').textContent = formatMoney(debt);
+            document.getElementById('debtCount').textContent = (financeData.debts || []).length + ' accounts';
+        }
+        function renderJournal() {
+            const list = document.getElementById('journalList');
+            let transactions = [...(financeData.transactions || [])].sort((a,b) => new Date(b.date) - new Date(a.date));
+            if (currentFilter !== 'all') transactions = transactions.filter(t => (currentFilter === 'income' && t.type === 'income') || (currentFilter === 'expense' && (t.type === 'expense' || t.type === 'debt')));
+            if (transactions.length === 0) { list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--color-text-muted);">No transactions</div>'; return; }
+            list.innerHTML = '';
+            transactions.forEach(t => {
+                let icon = '📌', catName = '';
+                if (t.type === 'income') { const cat = (financeData.incomeCategories || []).find(c => c.id === t.category); icon = cat ? cat.icon : '📥'; catName = cat ? cat.name : 'Income'; }
+                else if (t.type === 'expense') { const cat = (financeData.expenseCategories || []).find(c => c.id === t.category); icon = cat ? cat.icon : '📤'; catName = cat ? cat.name : 'Expense'; }
+                else if (t.type === 'debt') { icon = '💳'; const debt = (financeData.debts || []).find(d => d.id === t.debtId); catName = debt ? 'Payment: ' + debt.name : 'Debt Payment'; }
+                else if (t.type === 'savings') { icon = '🎯'; const goal = (financeData.savingsGoals || []).find(g => g.id === t.savingsId); catName = goal ? 'Savings: ' + goal.name : 'Savings'; }
+                const item = document.createElement('div');
+                item.className = 'journal-item';
+                item.innerHTML = `<div class="journal-info"><div class="journal-icon ${t.type}">${icon}</div><div class="journal-details"><div style="font-weight:600;">${t.description || catName}</div><div class="journal-date">${new Date(t.date).toLocaleDateString('en-US')} • ${catName}</div></div></div><div class="journal-amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}</div><button class="journal-delete-btn" onclick="deleteTransaction('${t.id}')" title="Delete">✖</button>`;
+                list.appendChild(item);
+            });
+        }
+        window.filterJournal = function(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); renderJournal(); };
         window.deleteTransaction = function(transactionId) {
-            financeData.transactions = (financeData.transactions || []).filter(t => t.id !== transactionId);
+            const transaction = financeData.transactions.find(t => t.id === transactionId);
+            if (transaction && (transaction.type === 'debt' || transaction.type === 'savings')) {
+                // коррекция данных (аналогично undo)
+                if (transaction.type === 'debt') {
+                    const debt = financeData.debts.find(d => d.id === transaction.debtId);
+                    if (debt) { debt.paid = Math.max(0, (debt.paid||0) - (transaction.amount||0)); debt.remaining = Math.min(debt.total, (debt.remaining||0) + (transaction.amount||0)); }
+                } else if (transaction.type === 'savings') {
+                    const goal = financeData.savingsGoals.find(g => g.id === transaction.savingsId);
+                    if (goal) goal.current = Math.max(0, (goal.current||0) - (transaction.amount||0));
+                }
+            }
+            financeData.transactions = financeData.transactions.filter(t => t.id !== transactionId);
             saveFinanceData();
             renderAll();
         };
-        
-        window.openTransactionModal = function() {
-            document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('transactionAmount').value = '';
-            document.getElementById('transactionDescription').value = '';
-            document.getElementById('transactionType').value = 'expense';
-            onTransactionTypeChange();
-            document.getElementById('transactionModal').classList.add('active');
-        };
-        
-        window.closeTransactionModal = function() {
-            document.getElementById('transactionModal').classList.remove('active');
-        };
-        
+        window.openTransactionModal = function() { document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0]; document.getElementById('transactionAmount').value = ''; document.getElementById('transactionDescription').value = ''; document.getElementById('transactionType').value = 'expense'; onTransactionTypeChange(); document.getElementById('transactionModal').classList.add('active'); };
+        window.closeTransactionModal = function() { document.getElementById('transactionModal').classList.remove('active'); };
         window.saveTransaction = function() {
             const type = document.getElementById('transactionType').value;
             const amount = parseFloat(document.getElementById('transactionAmount').value);
             const date = document.getElementById('transactionDate').value;
             const description = document.getElementById('transactionDescription').value.trim();
-            
-            if (!amount || amount <= 0) { return; }
-            if (!date) { return; }
-            
-            const transaction = { 
-                id: generateId(), 
-                type: type, 
-                amount: amount, 
-                date: date, 
-                description: description, 
-                createdAt: new Date().toISOString() 
-            };
-            
+            if (!amount || amount <= 0 || !date) return;
+            const transaction = { id: generateId(), type, amount, date, description, createdAt: new Date().toISOString() };
             if (type === 'debt') {
                 const debtId = document.getElementById('transactionDebt').value;
-                if (!debtId) { return; }
+                if (!debtId) return;
                 transaction.debtId = debtId;
-                
-                const debt = (financeData.debts || []).find(d => d.id === debtId);
-                if (debt) {
-                    debt.paid = (parseFloat(debt.paid) || 0) + amount;
-                    debt.remaining = Math.max(0, (parseFloat(debt.total) || 0) - debt.paid);
-                }
+                const debt = financeData.debts.find(d => d.id === debtId);
+                if (debt) { debt.paid = (parseFloat(debt.paid)||0) + amount; debt.remaining = Math.max(0, (parseFloat(debt.total)||0) - debt.paid); }
             } else if (type === 'savings') {
                 const savingsId = document.getElementById('transactionSavings').value;
-                if (!savingsId) { return; }
+                if (!savingsId) return;
                 transaction.savingsId = savingsId;
-                
-                const goal = (financeData.savingsGoals || []).find(g => g.id === savingsId);
-                if (goal) {
-                    goal.current = (parseFloat(goal.current) || 0) + amount;
-                }
+                const goal = financeData.savingsGoals.find(g => g.id === savingsId);
+                if (goal) goal.current = (parseFloat(goal.current)||0) + amount;
             } else {
                 const category = document.getElementById('transactionCategory').value;
                 transaction.category = category;
             }
-            
             if (!financeData.transactions) financeData.transactions = [];
             financeData.transactions.push(transaction);
             saveFinanceData();
             renderAll();
             closeTransactionModal();
-            document.getElementById('transactionAmount').value = '';
-            document.getElementById('transactionDescription').value = '';
         };
-        
-        window.openSettingsModal = function() {
-            renderSettingsLists();
-            document.getElementById('monthlyBudgetInput').value = financeData.monthlyBudget || 50000;
-            document.getElementById('settingsModal').classList.add('active');
-        };
-        window.closeSettingsModal = function() {
-            document.getElementById('settingsModal').classList.remove('active');
-        };
-        
+        window.openSettingsModal = function() { renderSettingsLists(); document.getElementById('monthlyBudgetInput').value = financeData.monthlyBudget || 50000; document.getElementById('settingsModal').classList.add('active'); };
+        window.closeSettingsModal = function() { document.getElementById('settingsModal').classList.remove('active'); };
         function renderSettingsLists() {
-            const incomeList = document.getElementById('incomeCategoriesList');
-            incomeList.innerHTML = '';
-            (financeData.incomeCategories || []).forEach((cat, idx) => {
-                const div = document.createElement('div');
-                div.className = 'settings-item';
-                div.innerHTML = '<span class="icon">' + cat.icon + '</span><input type="text" value="' + cat.name + '" onchange="updateIncomeCategory(' + idx + ', \'name\', this.value)"><button onclick="removeIncomeCategory(' + idx + ')" title="Remove">✖</button>';
-                incomeList.appendChild(div);
-            });
-            const expenseList = document.getElementById('expenseCategoriesList');
-            expenseList.innerHTML = '';
-            (financeData.expenseCategories || []).forEach((cat, idx) => {
-                const div = document.createElement('div');
-                div.className = 'settings-item';
-                div.innerHTML = '<span class="icon">' + cat.icon + '</span><input type="text" value="' + cat.name + '" onchange="updateExpenseCategory(' + idx + ', \'name\', this.value)"><button onclick="removeExpenseCategory(' + idx + ')" title="Remove">✖</button>';
-                expenseList.appendChild(div);
-            });
-            const savingsList = document.getElementById('savingsGoalsList');
-            savingsList.innerHTML = '';
-            (financeData.savingsGoals || []).forEach((goal, idx) => {
-                const div = document.createElement('div');
-                div.className = 'settings-item';
-                div.innerHTML = '<span class="icon">🎯</span><input type="text" value="' + goal.name + '" onchange="updateSavingsGoal(' + idx + ', \'name\', this.value)"><input type="number" class="amount-input" value="' + goal.target + '" onchange="updateSavingsGoal(' + idx + ', \'target\', this.value)"><button onclick="removeSavingsGoal(' + idx + ')" title="Remove">✖</button>';
-                savingsList.appendChild(div);
-            });
-            const debtsList = document.getElementById('debtsList');
-            debtsList.innerHTML = '';
-            (financeData.debts || []).forEach((debt, idx) => {
-                const div = document.createElement('div');
-                div.className = 'settings-item';
-                div.innerHTML = '<span class="icon">💳</span><input type="text" value="' + debt.name + '" onchange="updateDebt(' + idx + ', \'name\', this.value)"><input type="number" class="amount-input" value="' + debt.total + '" onchange="updateDebt(' + idx + ', \'total\', this.value)"><input type="date" value="' + debt.dueDate + '" onchange="updateDebt(' + idx + ', \'dueDate\', this.value)" style="width:120px;"><button onclick="removeDebt(' + idx + ')" title="Remove">✖</button>';
-                debtsList.appendChild(div);
-            });
+            const incomeList = document.getElementById('incomeCategoriesList'); incomeList.innerHTML = '';
+            (financeData.incomeCategories || []).forEach((cat, idx) => { const div = document.createElement('div'); div.className = 'settings-item'; div.innerHTML = `<span class="icon">${cat.icon}</span><input type="text" value="${cat.name}" onchange="updateIncomeCategory(${idx}, 'name', this.value)"><button onclick="removeIncomeCategory(${idx})">✖</button>`; incomeList.appendChild(div); });
+            const expenseList = document.getElementById('expenseCategoriesList'); expenseList.innerHTML = '';
+            (financeData.expenseCategories || []).forEach((cat, idx) => { const div = document.createElement('div'); div.className = 'settings-item'; div.innerHTML = `<span class="icon">${cat.icon}</span><input type="text" value="${cat.name}" onchange="updateExpenseCategory(${idx}, 'name', this.value)"><button onclick="removeExpenseCategory(${idx})">✖</button>`; expenseList.appendChild(div); });
+            const savingsList = document.getElementById('savingsGoalsList'); savingsList.innerHTML = '';
+            (financeData.savingsGoals || []).forEach((goal, idx) => { const div = document.createElement('div'); div.className = 'settings-item'; div.innerHTML = `<span class="icon">🎯</span><input type="text" value="${goal.name}" onchange="updateSavingsGoal(${idx}, 'name', this.value)"><input type="number" class="amount-input" value="${goal.target}" onchange="updateSavingsGoal(${idx}, 'target', this.value)"><button onclick="removeSavingsGoal(${idx})">✖</button>`; savingsList.appendChild(div); });
+            const debtsList = document.getElementById('debtsList'); debtsList.innerHTML = '';
+            (financeData.debts || []).forEach((debt, idx) => { const div = document.createElement('div'); div.className = 'settings-item'; div.innerHTML = `<span class="icon">💳</span><input type="text" value="${debt.name}" onchange="updateDebt(${idx}, 'name', this.value)"><input type="number" class="amount-input" value="${debt.total}" onchange="updateDebt(${idx}, 'total', this.value)"><input type="date" value="${debt.dueDate}" onchange="updateDebt(${idx}, 'dueDate', this.value)" style="width:120px;"><button onclick="removeDebt(${idx})">✖</button>`; debtsList.appendChild(div); });
         }
-        
-        window.addIncomeCategory = function() {
-            const name = document.getElementById('newIncomeCategory').value.trim();
-            if (!name) return;
-            if (!financeData.incomeCategories) financeData.incomeCategories = [];
-            financeData.incomeCategories.push({ id: generateId(), name: name, icon: '📥' });
-            document.getElementById('newIncomeCategory').value = '';
-            renderSettingsLists();
-            saveFinanceData();
-        };
-        window.addExpenseCategory = function() {
-            const name = document.getElementById('newExpenseCategory').value.trim();
-            if (!name) return;
-            if (!financeData.expenseCategories) financeData.expenseCategories = [];
-            financeData.expenseCategories.push({ id: generateId(), name: name, icon: '📤' });
-            document.getElementById('newExpenseCategory').value = '';
-            renderSettingsLists();
-            saveFinanceData();
-        };
-        window.addSavingsGoal = function() {
-            const name = document.getElementById('newSavingsName').value.trim();
-            const target = parseFloat(document.getElementById('newSavingsTarget').value);
-            if (!name || !target) return;
-            if (!financeData.savingsGoals) financeData.savingsGoals = [];
-            financeData.savingsGoals.push({ id: generateId(), name: name, target: target, current: 0 });
-            document.getElementById('newSavingsName').value = '';
-            document.getElementById('newSavingsTarget').value = '';
-            renderSettingsLists();
-            saveFinanceData();
-        };
-        
-        window.addDebt = function() {
-            const name = document.getElementById('newDebtName').value.trim();
-            const total = parseFloat(document.getElementById('newDebtTotal').value);
-            const dueDate = document.getElementById('newDebtDueDate').value;
-            if (!name || !total || !dueDate) { return; }
-            if (!financeData.debts) financeData.debts = [];
-            financeData.debts.push({ 
-                id: generateId(), 
-                name: name, 
-                total: total, 
-                paid: 0, 
-                remaining: total, 
-                dueDate: dueDate
-            });
-            document.getElementById('newDebtName').value = '';
-            document.getElementById('newDebtTotal').value = '';
-            document.getElementById('newDebtDueDate').value = '';
-            renderSettingsLists();
-            saveFinanceData();
-        };
-        
-        window.updateIncomeCategory = function(idx, field, value) { 
-            if (financeData.incomeCategories && financeData.incomeCategories[idx]) {
-                financeData.incomeCategories[idx][field] = value; 
-                saveFinanceData();
-            }
-        };
-        window.removeIncomeCategory = function(idx) { 
-            if (financeData.incomeCategories) {
-                financeData.incomeCategories.splice(idx, 1); 
-                renderSettingsLists(); 
-                saveFinanceData();
-            }
-        };
-        window.updateExpenseCategory = function(idx, field, value) { 
-            if (financeData.expenseCategories && financeData.expenseCategories[idx]) {
-                financeData.expenseCategories[idx][field] = value; 
-                saveFinanceData();
-            }
-        };
-        window.removeExpenseCategory = function(idx) { 
-            if (financeData.expenseCategories) {
-                financeData.expenseCategories.splice(idx, 1); 
-                renderSettingsLists(); 
-                saveFinanceData();
-            }
-        };
-        window.updateSavingsGoal = function(idx, field, value) { 
-            if (financeData.savingsGoals && financeData.savingsGoals[idx]) {
-                financeData.savingsGoals[idx][field] = field === 'target' ? parseFloat(value) : value; 
-                saveFinanceData();
-            }
-        };
-        window.removeSavingsGoal = function(idx) { 
-            if (financeData.savingsGoals) {
-                financeData.savingsGoals.splice(idx, 1); 
-                renderSettingsLists(); 
-                saveFinanceData();
-            }
-        };
-        
-        window.updateDebt = function(idx, field, value) {
-            if (financeData.debts && financeData.debts[idx]) {
-                if (field === 'total' || field === 'paid') {
-                    financeData.debts[idx][field] = parseFloat(value);
-                    financeData.debts[idx].remaining = Math.max(0, (parseFloat(financeData.debts[idx].total) || 0) - (parseFloat(financeData.debts[idx].paid) || 0));
-                } else {
-                    financeData.debts[idx][field] = value;
-                }
-                saveFinanceData();
-            }
-        };
-        window.removeDebt = function(idx) { 
-            if (financeData.debts) {
-                financeData.debts.splice(idx, 1); 
-                renderSettingsLists(); 
-                saveFinanceData();
-            }
-        };
-        
-        window.saveSettings = function() {
-            financeData.monthlyBudget = parseFloat(document.getElementById('monthlyBudgetInput').value) || 50000;
-            saveFinanceData();
-            closeSettingsModal();
-            renderAll();
-        };
+        window.addIncomeCategory = function() { const name = document.getElementById('newIncomeCategory').value.trim(); if (!name) return; financeData.incomeCategories.push({ id: generateId(), name, icon: '📥' }); document.getElementById('newIncomeCategory').value = ''; renderSettingsLists(); saveFinanceData(); };
+        window.addExpenseCategory = function() { const name = document.getElementById('newExpenseCategory').value.trim(); if (!name) return; financeData.expenseCategories.push({ id: generateId(), name, icon: '📤' }); document.getElementById('newExpenseCategory').value = ''; renderSettingsLists(); saveFinanceData(); };
+        window.addSavingsGoal = function() { const name = document.getElementById('newSavingsName').value.trim(); const target = parseFloat(document.getElementById('newSavingsTarget').value); if (!name || !target) return; financeData.savingsGoals.push({ id: generateId(), name, target, current: 0 }); document.getElementById('newSavingsName').value = ''; document.getElementById('newSavingsTarget').value = ''; renderSettingsLists(); saveFinanceData(); };
+        window.addDebt = function() { const name = document.getElementById('newDebtName').value.trim(); const total = parseFloat(document.getElementById('newDebtTotal').value); const dueDate = document.getElementById('newDebtDueDate').value; if (!name || !total || !dueDate) return; financeData.debts.push({ id: generateId(), name, total, paid: 0, remaining: total, dueDate }); document.getElementById('newDebtName').value = ''; document.getElementById('newDebtTotal').value = ''; document.getElementById('newDebtDueDate').value = ''; renderSettingsLists(); saveFinanceData(); };
+        window.updateIncomeCategory = function(idx, field, value) { if (financeData.incomeCategories[idx]) { financeData.incomeCategories[idx][field] = value; saveFinanceData(); } };
+        window.removeIncomeCategory = function(idx) { financeData.incomeCategories.splice(idx,1); renderSettingsLists(); saveFinanceData(); };
+        window.updateExpenseCategory = function(idx, field, value) { if (financeData.expenseCategories[idx]) { financeData.expenseCategories[idx][field] = value; saveFinanceData(); } };
+        window.removeExpenseCategory = function(idx) { financeData.expenseCategories.splice(idx,1); renderSettingsLists(); saveFinanceData(); };
+        window.updateSavingsGoal = function(idx, field, value) { if (financeData.savingsGoals[idx]) { financeData.savingsGoals[idx][field] = field === 'target' ? parseFloat(value) : value; saveFinanceData(); } };
+        window.removeSavingsGoal = function(idx) { financeData.savingsGoals.splice(idx,1); renderSettingsLists(); saveFinanceData(); };
+        window.updateDebt = function(idx, field, value) { if (financeData.debts[idx]) { if (field === 'total') { financeData.debts[idx].total = parseFloat(value); financeData.debts[idx].remaining = Math.max(0, financeData.debts[idx].total - (financeData.debts[idx].paid||0)); } else if (field === 'dueDate') financeData.debts[idx].dueDate = value; else financeData.debts[idx][field] = value; saveFinanceData(); } };
+        window.removeDebt = function(idx) { financeData.debts.splice(idx,1); renderSettingsLists(); saveFinanceData(); };
+        window.saveSettings = function() { financeData.monthlyBudget = parseFloat(document.getElementById('monthlyBudgetInput').value) || 50000; saveFinanceData(); closeSettingsModal(); renderAll(); };
     </script>
 </body>
 </html>

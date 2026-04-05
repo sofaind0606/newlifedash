@@ -21,13 +21,19 @@
             --color-text-light: #8a3a3c;
             --color-text-muted: #b57a7c;
             --color-nav: #E59B90;
+            --color-nav-light: #D18B80;
             --color-border: #A4A884;
             --color-border-light: #d0d4b6;
             --color-bg: #F9FBED;
             --color-bg-alt: #ffffff;
             --color-success: #6bcb77;
+            --color-success-light: #d4edda;
             --color-warning: #ffd93d;
+            --color-warning-light: #fff3cd;
             --color-danger: #ff6b6b;
+            --color-danger-light: #f8d7da;
+            --color-info: #3498db;
+            --color-info-light: #d6eaf8;
             --shadow-sm: 0 2px 8px rgba(98, 6, 7, 0.05);
             --shadow-md: 0 4px 15px rgba(98, 6, 7, 0.08);
             --shadow-lg: 0 10px 30px rgba(98, 6, 7, 0.12);
@@ -215,6 +221,78 @@
             box-shadow: 0 0 0 3px rgba(229, 155, 144, 0.2);
         }
         
+        /* ✅ MUSIC SECTION STYLES */
+        .music-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--color-border-light);
+        }
+        .music-section h4 {
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            font-size: 1em;
+        }
+        .music-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .music-file-input {
+            display: none;
+        }
+        .music-file-label {
+            padding: 8px 16px;
+            background: var(--color-bg);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: var(--transition);
+        }
+        .music-file-label:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+        .music-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .music-btn-play {
+            background: var(--color-success);
+            color: white;
+        }
+        .music-btn-pause {
+            background: var(--color-warning);
+            color: #000;
+        }
+        .music-btn-stop {
+            background: var(--color-danger);
+            color: white;
+        }
+        .music-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .music-info {
+            font-size: 0.85em;
+            color: var(--color-text-light);
+            margin-top: 10px;
+        }
+        .music-info span {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+        
         .history-card {
             background: var(--color-bg-alt);
             border-radius: var(--radius-lg);
@@ -266,7 +344,6 @@
         
         .history-item.completed {
             border-left-color: var(--color-success);
-            background: var(--color-success-light);
         }
         
         .history-info {
@@ -380,6 +457,30 @@
                         <span id="currentMode">Pomodoro</span> session
                         <span id="sessionCounter" style="margin-left:10px;font-weight:600;color:var(--color-primary);"></span>
                     </div>
+                    
+                    <!-- ✅ MUSIC SECTION -->
+                    <div class="music-section">
+                        <h4>🎵 Background Music</h4>
+                        <div class="music-controls">
+                            <label class="music-file-label" for="musicFile">📁 Upload Music</label>
+                            <input type="file" id="musicFile" class="music-file-input" accept="audio/*" onchange="loadMusic(this)">
+                            <button class="music-btn music-btn-play" id="musicPlayBtn" onclick="toggleMusic()" style="display:none;">
+                                <span>▶</span>
+                                <span>Play</span>
+                            </button>
+                            <button class="music-btn music-btn-pause" id="musicPauseBtn" onclick="toggleMusic()" style="display:none;">
+                                <span>⏸</span>
+                                <span>Pause</span>
+                            </button>
+                            <button class="music-btn music-btn-stop" onclick="stopMusic()">
+                                <span>⏹</span>
+                                <span>Stop</span>
+                            </button>
+                        </div>
+                        <div class="music-info" id="musicInfo" style="display:none;">
+                            Playing: <span id="musicFileName">-</span> 🔁 Repeat
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="settings-card">
@@ -436,9 +537,9 @@
         let timeRemaining = 25 * 60;
         let isRunning = false;
         let currentMode = 'pomodoro';
-        let pomodoroCount = 0; // ✅ Счётчик рабочих сессий для длинного перерыва
+        let pomodoroCount = 0;
         
-        // ✅ ИСТОРИЯ ТОЛЬКО ДЛЯ РАБОЧИХ СЕССИЙ (не для перерывов)
+        // ✅ ИСТОРИЯ ТОЛЬКО ДЛЯ РАБОЧИХ СЕССИЙ
         let pomodoroHistory = JSON.parse(localStorage.getItem('pomodoroHistory')) || [];
         
         let settings = JSON.parse(localStorage.getItem('pomodoroSettings')) || {
@@ -447,6 +548,11 @@
             longBreakDuration: 15,
             pomodorosUntilLong: 4
         };
+        
+        // ✅ MUSIC VARIABLES
+        let audioElement = null;
+        let musicFileName = '';
+        let isMusicPlaying = false;
         
         let firebaseReady = false;
         let db = null;
@@ -492,11 +598,37 @@
                     if (user) { 
                         currentUser = user; 
                         firebaseReady = true; 
+                        loadPomodoroHistory(); // ✅ Загружаем историю из Firebase
                     } else { 
                         firebaseReady = false; 
                     }
                 });
             } catch (e) { firebaseReady = false; }
+        }
+        
+        // ✅ ЗАГРУЗКА ИСТОРИИ ИЗ FIREBASE
+        function loadPomodoroHistory() {
+            if (!currentUser || !db) return;
+            db.collection('users').doc(currentUser.uid).collection('pomodoro').doc('history').get().then(function(doc) {
+                if (doc.exists) {
+                    const loaded = doc.data();
+                    if (loaded.sessions && JSON.stringify(pomodoroHistory) !== JSON.stringify(loaded.sessions)) {
+                        pomodoroHistory = loaded.sessions;
+                        localStorage.setItem('pomodoroHistory', JSON.stringify(pomodoroHistory));
+                        renderHistory();
+                        updateStats();
+                    }
+                }
+            });
+        }
+        
+        // ✅ СОХРАНЕНИЕ ИСТОРИИ В FIREBASE
+        function savePomodoroHistory() {
+            localStorage.setItem('pomodoroHistory', JSON.stringify(pomodoroHistory));
+            if (firebaseReady && currentUser && db) {
+                db.collection('users').doc(currentUser.uid).collection('pomodoro').doc('history')
+                    .set({ sessions: pomodoroHistory }).catch(function() {});
+            }
         }
         
         function loadSettings() {
@@ -519,27 +651,23 @@
         function setMode(mode, autoSwitch = false) {
             currentMode = mode;
             
-            // ✅ Обновляем кнопки
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
             event?.target?.classList?.add('active') || 
                 document.querySelector(`.mode-btn[onclick="setMode('${mode}')"]`)?.classList?.add('active');
             
-            // ✅ Устанавливаем время
             const duration = settings[mode + 'Duration'] || 
                 (mode === 'pomodoro' ? 25 : mode === 'shortBreak' ? 5 : 15);
             timeRemaining = duration * 60;
             
-            // ✅ Обновляем интерфейс
             document.getElementById('currentMode').textContent = modeLabels[mode];
             document.getElementById('currentMode').style.color = modeColors[mode];
             updateTimerDisplay();
             updateSessionCounter();
             
-            // ✅ Если авто-переключение — не паузим, а сразу стартуем
             if (autoSwitch) {
-                pauseTimer(); // Сначала пауза, чтобы не было двух интервалов
+                pauseTimer();
                 setTimeout(() => {
-                    startTimer(); // Затем авто-старт нового режима
+                    startTimer();
                 }, 100);
             } else {
                 pauseTimer();
@@ -552,10 +680,7 @@
             document.getElementById('timerDisplay').textContent = 
                 String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
             
-            // ✅ Меняем цвет таймера в зависимости от режима
             document.getElementById('timerDisplay').style.color = modeColors[currentMode];
-            
-            // ✅ Обновляем заголовок страницы
             document.title = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} - ${modeLabels[currentMode]}`;
         }
         
@@ -574,6 +699,14 @@
             isRunning = true;
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('pauseBtn').style.display = 'flex';
+            
+            // ✅ ЗАПУСКАЕМ МУЗЫКУ ЕСЛИ ОНА ЗАГРУЖЕНА
+            if (audioElement && !isMusicPlaying) {
+                audioElement.loop = true;
+                audioElement.play().catch(() => {});
+                isMusicPlaying = true;
+                updateMusicButtons();
+            }
             
             timerInterval = setInterval(function() {
                 if (timeRemaining > 0) {
@@ -603,7 +736,7 @@
             document.title = 'LifeDashboard | Pomodoro Timer';
         }
         
-        // ✅ ИСПРАВЛЕНО: АВТО-ПЕРЕКЛЮЧЕНИЕ + ИСТОРИЯ ТОЛЬКО ДЛЯ ПОМОДОРО
+        // ✅ ИСПРАВЛЕНО: АВТО-ПЕРЕКЛЮЧЕНИЕ + ИСТОРИЯ СИНХРОНИЗИРУЕТСЯ
         function completeSession() {
             pauseTimer();
             
@@ -613,7 +746,7 @@
                 audio.play().catch(() => {});
             } catch (e) {}
             
-            // ✅ ЗАПИСЫВАЕМ В ИСТОРИЮ ТОЛЬКО РАБОЧИЕ СЕССИИ (не перерывы!)
+            // ✅ ЗАПИСЫВАЕМ В ИСТОРИЮ ТОЛЬКО РАБОЧИЕ СЕССИИ
             if (currentMode === 'pomodoro') {
                 const session = {
                     id: 'session_' + Date.now(),
@@ -628,43 +761,30 @@
                 
                 pomodoroHistory.unshift(session);
                 
-                // ✅ Ограничиваем историю 100 записями
                 if (pomodoroHistory.length > 100) {
                     pomodoroHistory = pomodoroHistory.slice(0, 100);
                 }
                 
-                localStorage.setItem('pomodoroHistory', JSON.stringify(pomodoroHistory));
+                // ✅ СОХРАНЯЕМ В FIREBASE
+                savePomodoroHistory();
                 
-                // ✅ Синхронизация с Firebase
-                if (firebaseReady && currentUser && db) {
-                    db.collection('users').doc(currentUser.uid).collection('pomodoro').doc('history')
-                        .set({ sessions: pomodoroHistory }).catch(() => {});
-                }
-                
-                // ✅ Увеличиваем счётчик рабочих сессий
                 pomodoroCount++;
                 
-                // ✅ Авто-переключение на перерыв
                 if (pomodoroCount % settings.pomodorosUntilLong === 0) {
-                    // ✅ Длинный перерыв после каждых N сессий
                     setTimeout(() => setMode('longBreak', true), 1500);
                 } else {
-                    // ✅ Короткий перерыв
                     setTimeout(() => setMode('shortBreak', true), 1500);
                 }
                 
             } else {
-                // ✅ После перерыва — авто-возврат к работе (без записи в историю)
                 setTimeout(() => {
                     setMode('pomodoro', true);
-                    pomodoroCount = 0; // ✅ Сбрасываем после длинного перерыва, если нужно
                     if (currentMode === 'longBreak') {
                         pomodoroCount = 0;
                     }
                 }, 1500);
             }
             
-            // ✅ Обновляем UI
             renderHistory();
             updateStats();
             updateSessionCounter();
@@ -724,6 +844,63 @@
             renderHistory();
             updateStats();
         };
+        
+        // ✅ MUSIC FUNCTIONS
+        window.loadMusic = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            musicFileName = file.name;
+            
+            if (audioElement) {
+                audioElement.pause();
+                URL.revokeObjectURL(audioElement.src);
+            }
+            
+            audioElement = new Audio(URL.createObjectURL(file));
+            audioElement.loop = true; // ✅ ПОВТОР ВСЕГДА ВКЛЮЧЕН
+            
+            document.getElementById('musicFileName').textContent = musicFileName.length > 20 ? 
+                musicFileName.substring(0, 20) + '...' : musicFileName;
+            document.getElementById('musicInfo').style.display = 'block';
+            document.getElementById('musicPlayBtn').style.display = 'flex';
+            
+            updateMusicButtons();
+        };
+        
+        window.toggleMusic = function() {
+            if (!audioElement) return;
+            
+            if (isMusicPlaying) {
+                audioElement.pause();
+                isMusicPlaying = false;
+            } else {
+                audioElement.play().catch(() => {});
+                isMusicPlaying = true;
+            }
+            updateMusicButtons();
+        };
+        
+        window.stopMusic = function() {
+            if (!audioElement) return;
+            audioElement.pause();
+            audioElement.currentTime = 0;
+            isMusicPlaying = false;
+            updateMusicButtons();
+        };
+        
+        function updateMusicButtons() {
+            const playBtn = document.getElementById('musicPlayBtn');
+            const pauseBtn = document.getElementById('musicPauseBtn');
+            
+            if (isMusicPlaying) {
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'flex';
+            } else {
+                playBtn.style.display = 'flex';
+                pauseBtn.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
